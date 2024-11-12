@@ -1,0 +1,113 @@
+---
+title: "MAPPINGjustAllegheny"
+output: html_document
+date: "2024-11-11"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidycensus)
+library(tidyverse)
+library(tigris)
+library(sf)
+library(tidygeocoder)
+
+options(tigris_use_cache = TRUE)
+
+#load income data for Allegheny County
+ac_income <- get_acs(
+  geography = "tract", 
+  variables = "B19013_001", # Median household income
+  county = "Allegheny",
+  state = "PA", 
+  year = 2020,
+  geometry = TRUE
+)
+
+
+# Step 3: Filter hospital data (assuming hospitals are geocoded with latitude and longitude columns)
+filtered_hospitals <- hospitals %>%
+  filter(!name %in% c("UPMC Horizon – Shenango Valley", "UPMC Horizon – Greenville"))
+
+# Plot 1: Map of Median Household Income with Hospital Overlay
+ggplot(ac_income) + 
+  geom_sf(aes(fill = estimate), color = "black", size = 0.2) + 
+  geom_point(data = filtered_hospitals, aes(x = longitude, y = latitude), color = "red", size = 2) +
+  geom_text(data = filtered_hospitals, aes(x = longitude, y = latitude, label = name), 
+            size = 2, nudge_y = 0.003, check_overlap = TRUE, color = "white") +  # Set text color to white
+  scale_fill_viridis_c(option = "plasma", na.value = "grey90") + 
+  labs(title = "Median Household Income in Allegheny County, 2020",
+       caption = "Data source: 2020 ACS, US Census Bureau",
+       fill = "Median Income") + 
+  theme_void() +
+  theme(panel.border = element_rect(color = "white", fill = NA))
+
+```
+
+```{r}
+# Step 2: Load median age data for Allegheny County
+ac_age <- get_acs(
+  geography = "tract", 
+  variables = "B01002_001", # Median age
+  county = "Allegheny",
+  state = "PA", 
+  year = 2020,
+  geometry = TRUE
+)
+# Plot 2: Map of Median Age with Hospital Overlay
+ggplot(ac_age) + 
+  geom_sf(aes(fill = estimate), color = "grey", size = 0.2) + 
+  geom_point(data = filtered_hospitals, aes(x = longitude, y = latitude), color = "yellow", size = 2) +
+  geom_text(data = filtered_hospitals, aes(x = longitude, y = latitude, label = name), 
+            size = 2, nudge_y = 0.003, check_overlap = TRUE) + 
+  scale_fill_distiller(palette = "RdPu", direction = 1, na.value = "grey90") + 
+  labs(title = "Median Age in Allegheny County, 2020",
+       caption = "Data source: 2020 ACS, US Census Bureau",
+       fill = "Median Age") + 
+  theme_void() +
+  theme(panel.border = element_rect(color = "black", fill = NA))
+
+```
+# race data
+#employ log transformation for a better race distribution
+```{r}
+library(tidycensus)
+library(tidyverse)
+library(tigris)
+library(sf)
+library(tidygeocoder)
+
+
+options(tigris_use_cache = TRUE)
+
+ac_black_population <- get_acs(
+  geography = "tract", 
+  variables = "B02001_003", # Black or African American alone
+  county = "Allegheny",
+  state = "PA", 
+  year = 2020,
+  geometry = TRUE
+)
+
+filtered_hospitals <- hospitals %>%
+  filter(!name %in% c("UPMC Horizon – Shenango Valley", "UPMC Horizon – Greenville"))
+
+ggplot(ac_black_population) + 
+  geom_sf(aes(fill = estimate), color = "grey", size = 0.2) + 
+  geom_point(data = filtered_hospitals, aes(x = longitude, y = latitude), color = "red", size = 2.5) +
+  geom_text(data = filtered_hospitals, aes(x = longitude, y = latitude, label = name), 
+            size = 3, nudge_y = 0.003, check_overlap = TRUE, color = "white") + 
+  scale_fill_viridis_c(option = "magma", na.value = "grey90", name = "Population Count") + 
+  labs(title = "Black or African American Population by Census Tract in Allegheny County, 2020",
+       caption = "Data source: 2020 ACS, US Census Bureau") + 
+  theme_void() +
+  theme(
+    plot.title = element_text(size = 16, hjust = 0.5),
+    plot.caption = element_text(size = 10),
+    panel.border = element_rect(color = "white", fill = NA)
+  )
+```

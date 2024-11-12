@@ -1,0 +1,98 @@
+---
+title: "297 Initial Visualization"
+output: html_document
+date: "2024-09-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+ 
+Plots for YEAR & SEX CSV
+```{r}
+df_sex <- read.csv("/Users/zainasaif/Desktop/297Research/chronic_hcv_by_yr_and_sex.csv", stringsAsFactors=TRUE)
+names(df_sex)
+dim(df_sex)
+summary(df_sex)
+```
+
+```{r}
+suppressMessages(library(tidyverse))
+```
+Bar Plot for cat var sex
+```{r}
+ggplot(data=df_sex, aes(x=Year, y=Total)) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(title="Chronic HCV Cases by Year and Sex", x="Year", y="Total Cases") +
+  theme_minimal()
+```
+Line Plot
+```{r}
+df_sex_long <- df_sex %>%
+  pivot_longer(cols = c(F, M, U), names_to = "Sex", values_to = "Cases")
+
+ggplot(data = df_sex_long, aes(x = Year, y = Cases, color = Sex)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "HCV Cases by Year and Sex", x = "Year", y = "Number of Cases") +
+  theme_minimal()
+```
+```{r}
+ggplot(data = df_sex_long, aes(x = factor(Year), y = Cases, fill = Sex)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Total HCV Cases by Year and Sex", x = "Year", y = "Number of Cases") 
+
+```
+Plots for year and age
+```{r}
+df_age <- read.csv("/Users/zainasaif/Desktop/297Research/chronic_hcv_by_yr_and_age.csv", stringsAsFactors = TRUE)
+names(df_age)
+dim(df_age)
+summary(df_age)
+```
+
+
+```{r}
+ggplot(data = df_age, aes(x = Year, y = Total)) +
+  geom_line(color = "blue") +
+  geom_point() +
+  labs(title = "Total HCV Cases by Year", x = "Year", y = "Total Cases") 
+```
+```{r}
+df_age_long <- df_age %>%
+  pivot_longer(cols = starts_with("X"), names_to = "Age_Group", values_to = "Cases")
+ggplot(data = df_age_long, aes(x = Year, y = Cases, color = Age_Group)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "HCV Cases by Year and Age Group", x = "Year", y = "Number of Cases")
+```
+```{r}
+ggplot(data = df_age_long, aes(x = Age_Group, y = Cases)) +
+  geom_boxplot() +
+  labs(title = "Distribution of HCV Cases by Age Group", x = "Age Group", y = "Number of Cases") 
+```
+
+```{r}
+ggplot(data = df_age_long, aes(x = factor(Year), y = Cases, fill = Age_Group)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Total HCV Cases by Year and Age Group", x = "Year", y = "Number of Cases")
+
+```
+Data from CDC 
+
+
+```{r}
+df_cdc <- read.csv("/Users/zainasaif/Desktop/297Research/incidence_rate__of_reported_new_hepatitis_c_cases_among_persons_aged_18_40_years__and_annual_targets_for_the_united_states_by_year.csv", stringsAsFactors = TRUE)
+names(df_cdc)
+dim(df_cdc)
+summary(df_cdc)
+
+
+```
+```{r}
+# Clean column names by removing the "X" prefix
+colnames(df_cdc)
+
+colnames(df_cdc) <- gsub("^X", "", colnames(df_cdc))
+colnames(df_cdc)
+```

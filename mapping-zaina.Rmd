@@ -1,0 +1,206 @@
+---
+title: "Mapping"
+output: html_document
+date: "2024-11-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Following ch 6 and 7 of the text
+```{r}
+library(tidycensus)
+vars <- load_variables(2020,"acs5")
+View(vars)
+```
+
+```{r}
+
+library(tidycensus)
+options(tigris_use_cache = TRUE)
+
+ac_income <- get_acs(
+  geography = "tract", 
+  variables = "B19013_001",
+  county ="Allegheny",
+  state = "PA", 
+  year = 2020,
+  geometry = TRUE
+)
+
+ac_income
+```
+
+#Map against counties in the US
+```{r}
+
+library(tidycensus)
+library(tidyverse)
+library(tigris)
+
+us_median_age <- get_acs(
+  geography = "county",
+  variables = "B01002_001",
+  state = "PA",
+  year = 2019,
+  survey = "acs1",
+  geometry = TRUE,
+  resolution = "20m"
+) %>%
+  shift_geometry()
+
+plot(us_median_age$geometry)
+
+
+```
+
+
+
+
+
+
+```{r}
+ggplot(data = us_median_age, aes(fill = estimate)) + 
+  geom_sf() + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) + 
+  labs(title = "Median Age by County, 2019",
+       caption = "Data source: 2019 1-year ACS, US Census Bureau",
+       fill = "ACS estimate") + 
+  theme_void() + 
+  theme(panel.border = element_rect(color = "black", fill = NA))
+```
+```{r}
+ggplot(data = us_median_age, aes(fill = estimate)) + 
+  geom_sf() + 
+  scale_fill_viridis_c(option = "plasma") + 
+  labs(title = "Median Age & Income by County",
+       caption = "Source: US Census Bureau",
+       fill = "Age / Income") +
+  theme_minimal()
+```
+
+```{r}
+pa_population <- get_acs(
+  geography = "county",
+  variables = "B01001_001",
+  state = "PA",
+  year = 2019,
+  survey = "acs1",
+  geometry = TRUE
+)
+
+ggplot(data = pa_population, aes(fill = estimate)) + 
+  geom_sf() + 
+  scale_fill_viridis_c(option = "cividis", trans = "log") + 
+  labs(title = "Population Density by County in PA, 2019",
+       caption = "Data source: 2019 ACS, US Census Bureau",
+       fill = "Population") + 
+  theme_minimal()
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+library(tidycensus)
+library(ggplot2)
+install.packages("scales")
+
+pa_poverty <- get_acs(
+  geography = "county",
+  variables = "B17001_002", # Variable for individuals below poverty level
+  state = "PA",
+  year = 2019,
+  survey = "acs1",
+  geometry = TRUE
+)
+us_median_age <- us_median_age %>%
+  mutate(NAME = str_replace_all(NAME, " County, Pennsylvania", ""))
+
+ggplot(data = pa_poverty, aes(fill = estimate)) + 
+  geom_sf() + 
+  geom_sf_text(aes(label = NAME), size = 2, color = "black") + #Want to try and display names
+  scale_fill_distiller(palette = "YlGnBu", direction = 1) + 
+  labs(title = "Poverty Rate by County in PA, 2019",
+       caption = "Data source: 2019 ACS, US Census Bureau",
+       fill = "Poverty Rate") + 
+  theme_void()
+```
+#Overlaying
+
+
+```{r}
+hospitals <- data.frame(
+  name = c("UPMC Passavant – Cranberry", "UPMC Horizon – Shenango Valley", "UPMC Horizon – Greenville",
+           "UPMC McKeesport", "UPMC East", "UPMC Jameson", "UPMC St. Margaret", 
+           "UPMC Children's Hospital of Pittsburgh", "UPMC Passavant – McCandless", 
+           "UPMC Magee-Womens Hospital", "UPMC Presbyterian", "UPMC Shadyside", "UPMC Mercy",
+           "Allegheny General Hospital Emergency Department", 
+           "AHN Neighborhood Hospital McCandless Emergency Dept", 
+           "Wexford Hospital Emergency Department",
+           "AHN Neighborhood Hospital Harmar Emergency Dept", 
+           "AHN Neighborhood Hospital Brentwood Emergency Dept",
+           "Forbes Hospital Emergency Department"),
+
+  address = c("1 St. Francis Way, Cranberry Township, PA 16066", "2200 Memorial Dr., Farrell, PA 16121",
+              "110 N. Main St., Greenville, PA 16125", "1500 5th Ave., McKeesport, PA 15132",
+              "2775 Mosside Blvd., Monroeville, PA 15146", "1211 Wilmington Ave., New Castle, PA 16105",
+              "815 Freeport Rd., Pittsburgh, PA 15215", "4401 Penn Ave., Pittsburgh, PA 15224",
+              "9100 Babcock Blvd., Pittsburgh, PA 15237", "300 Halket St., Pittsburgh, PA 15213",
+              "200 Lothrop St., Pittsburgh, PA 15213", "5230 Centre Ave., Pittsburgh, PA 15232",
+              "1400 Locust St., Pittsburgh, PA 15219",
+              "320 East North Avenue, Pittsburgh, PA 15212-4756",
+              "8950 Duncan Ave, Pittsburgh, PA 15237-5803",
+              "12351 Perry Highway, Wexford, PA 15090",
+              "2501 Freeport Road, Pittsburgh, PA 15238-1409",
+              "3290 Saw Mill Run Boulevard, Pittsburgh, PA",
+              "2570 Haymaker Road, Monroeville, PA 15146-3513")
+)
+```
+
+
+```{r}
+#install.packages("tidygeocoder")
+library(tidygeocoder)
+hospitals <- hospitals %>%
+  geocode(address, method = 'osm', lat = latitude, long = longitude)
+hospitals
+```
+
+
+```{r}
+library(tigris)
+library(tidyverse)
+library(sf)
+
+options(tigris_use_cache = TRUE)
+
+# Load PA counties map
+allegheny_county <- counties(state = "PA", cb = TRUE, year = 2020) %>%
+  filter(NAME == "Allegheny") %>%
+  st_transform(4326)
+```
+```{r}
+library(ggplot2)
+filtered_hospitals <- hospitals %>%
+  filter(!name %in% c("UPMC Horizon – Shenango Valley", "UPMC Horizon – Greenville"))
+
+ggplot() + 
+  geom_sf(data = allegheny_county, fill = "white", color = "grey") + 
+  geom_point(data = filtered_hospitals, aes(x = longitude, y = latitude), color = "red", size = 2) + 
+  geom_text(data = filtered_hospitals, aes(x = longitude, y = latitude, label = name), 
+            size = 2, nudge_y = 0.03, check_overlap = TRUE, hjust = 1, vjust = 1) + # Small text size and position adjustments
+  labs(
+    title = "Emergency Healthcare Facilities in Allegheny County, Pennsylvania",
+    caption = "Source: UPMC and AHN addresses, US Census Bureau"
+  ) + 
+  theme_void() +
+  theme(
+    plot.title = element_text(size = 12),
+    plot.caption = element_text(size = 10),
+  )
+```
+
+
+
+
